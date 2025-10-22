@@ -129,19 +129,22 @@ async function finalizeSession(chatId, session) {
   const incorrectItems = session.answers.filter((item) => !item.isCorrect);
 
   const summaryLines = [
-    `Yo'nalish: ${session.categoryKey}`,
-    `Jami savollar: ${total}`,
-    `To'g'ri javoblar: ${correct}`,
-    `Noto'g'ri javoblar: ${incorrectItems.length}`,
-    '',
+    { text: `Yo'nalish: ${session.categoryKey}` },
+    { text: `Jami savollar: ${total}` },
+    { text: `To'g'ri javoblar: ${correct}` },
+    { text: `Noto'g'ri javoblar: ${incorrectItems.length}` },
+    { text: '' },
   ];
 
   session.answers.forEach((answer, idx) => {
-    summaryLines.push(`Savol ${idx + 1}: ${answer.question}`);
-    summaryLines.push(`Sizning javobingiz: ${answer.selected}`);
-    summaryLines.push(`To'g'ri javob: ${answer.correct}`);
-    summaryLines.push(`Holat: ${answer.isCorrect ? '✅' : '❌'}`);
-    summaryLines.push('');
+    const statusColor = answer.isCorrect ? 'green' : 'red';
+    summaryLines.push({ text: `Savol ${idx + 1}: ${answer.question}`, color: statusColor });
+    summaryLines.push({ text: `Sizning javobingiz: ${answer.selected}`, color: statusColor });
+    if (!answer.isCorrect) {
+      summaryLines.push({ text: `To'g'ri javob: ${answer.correct}`, color: 'green' });
+    }
+    summaryLines.push({ text: `Holat: ${answer.isCorrect ? '✅ To'g'ri' : '❌ Noto'g'ri'}`, color: statusColor });
+    summaryLines.push({ text: '' });
   });
 
   const pdfBuffer = createPdfBuffer(summaryLines);

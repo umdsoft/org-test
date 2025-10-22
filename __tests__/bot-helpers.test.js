@@ -64,6 +64,22 @@ describe('bot helpers', () => {
     expect(pdfContent).toContain('(Backslash: \\\\)');
   });
 
+  test('createPdfBuffer rangli matnlarni qo\'llaydi', () => {
+    const buffer = createPdfBuffer([
+      { text: 'Correct', color: 'green' },
+      { text: 'Wrong', color: 'red' },
+      'Neutral',
+    ]);
+    const pdfContent = buffer.toString('utf8');
+    expect(pdfContent).toContain('0 1 0 rg\n(Correct) Tj');
+    expect(pdfContent).toContain('T*\n1 0 0 rg\n(Wrong) Tj');
+    expect(pdfContent).toContain('T*\n0 0 0 rg\n(Neutral) Tj');
+  });
+
+  test('createPdfBuffer noma\'lum rang uchun xato qaytaradi', () => {
+    expect(() => createPdfBuffer([{ text: 'Hello', color: 'blue' }])).toThrow('Ruxsat etilgan ranglar: black, red, green.');
+  });
+
   test('escapePdfText noto\'g\'ri turdagi qiymat uchun xato chiqaradi', () => {
     expect(() => escapePdfText(12)).toThrow('Matn qiymati string bo\'lishi kerak.');
   });
