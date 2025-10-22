@@ -143,7 +143,7 @@ async function finalizeSession(chatId, session) {
     if (!answer.isCorrect) {
       summaryLines.push({ text: `To'g'ri javob: ${answer.correct}`, color: 'green' });
     }
-    summaryLines.push({ text: `Holat: ${answer.isCorrect ? '✅ To'g'ri' : '❌ Noto'g'ri'}`, color: statusColor });
+    summaryLines.push({ text: `Holat: ${answer.isCorrect ? "✅ To'g'ri" : "❌ Noto'g'ri"}`, color: statusColor });
     summaryLines.push({ text: '' });
   });
 
