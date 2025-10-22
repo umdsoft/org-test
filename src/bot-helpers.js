@@ -58,19 +58,62 @@ export function escapePdfText(text) {
   return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
+function normalizeColor(color) {
+  if (color === undefined || color === null) {
+    return 'black';
+  }
+  if (typeof color !== 'string') {
+    throw new TypeError('Rang nomi string bo\'lishi kerak.');
+  }
+  const lowered = color.toLowerCase();
+  if (!['black', 'red', 'green'].includes(lowered)) {
+    throw new RangeError('Ruxsat etilgan ranglar: black, red, green.');
+  }
+  return lowered;
+}
+
+function resolveLine(line) {
+  if (typeof line === 'string') {
+    return { text: line, color: 'black' };
+  }
+  if (!line || typeof line.text !== 'string') {
+    throw new TypeError('Har bir qator string yoki { text, color } obyektidan iborat bo\'lishi kerak.');
+  }
+  return { text: line.text, color: normalizeColor(line.color) };
+}
+
+const colorCommands = {
+  black: '0 0 0',
+  red: '1 0 0',
+  green: '0 1 0',
+};
+
 export function createPdfBuffer(lines) {
   if (!Array.isArray(lines) || lines.length === 0) {
     throw new TypeError('PDF mazmuni uchun hech bo\'lmaganda bitta qator kerak.');
   }
+
+  const resolvedLines = lines.map(resolveLine);
   const streamLines = ['BT', '/F1 12 Tf', '14 TL', '72 770 Td'];
-  lines.forEach((line, index) => {
-    const escaped = escapePdfText(line);
+  let currentColor = 'black';
+
+  resolvedLines.forEach((line, index) => {
+    const escaped = escapePdfText(line.text);
     if (index === 0) {
+      if (line.color !== currentColor) {
+        streamLines.push(`${colorCommands[line.color]} rg`);
+        currentColor = line.color;
+      }
       streamLines.push(`(${escaped}) Tj`);
-    } else {
-      streamLines.push('T*');
-      streamLines.push(`(${escaped}) Tj`);
+      return;
     }
+
+    streamLines.push('T*');
+    if (line.color !== currentColor) {
+      streamLines.push(`${colorCommands[line.color]} rg`);
+      currentColor = line.color;
+    }
+    streamLines.push(`(${escaped}) Tj`);
   });
   streamLines.push('ET');
   const streamContent = streamLines.join('\n');
