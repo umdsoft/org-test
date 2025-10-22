@@ -1,0 +1,70 @@
+{
+  "categories": {
+    "frontend": [
+      {
+        "question": "JavaScriptda 'const' kalit so'zining vazifasi nima?",
+        "options": [
+          "O'zgaruvchi qiymatini o'zgartirish",
+          "O'zgaruvchini faqat blok ichida saqlash",
+          "Funksiyani e'lon qilish",
+          "JSON obyektini yaratish"
+        ],
+        "answerIndex": 1
+      },
+      {
+        "question": "CSS da elementni markazga joylashtirish uchun qaysi xususiyat juftligi ko'p ishlatiladi?",
+        "options": [
+          "display: block; margin: 0;",
+          "display: flex; justify-content: center; align-items: center;",
+          "position: absolute; top: 0; left: 0;",
+          "display: grid; grid-template-columns: repeat(12, 1fr);"
+        ],
+        "answerIndex": 1
+      }
+    ],
+    "backend": [
+      {
+        "question": "HTTP 201 status kodi nimani bildiradi?",
+        "options": [
+          "Server xatosi",
+          "Resurs yaratildi",
+          "Ruxsat yo'q",
+          "Qayta yo'naltirish"
+        ],
+        "answerIndex": 1
+      },
+      {
+        "question": "JWT token tarkibidagi 'exp' maydoni nimani bildiradi?",
+        "options": [
+          "Tokenning yaratilgan vaqti",
+          "Tokenning amal qilish muddati",
+          "Foydalanuvchi rollarini",
+          "Token imzosini"
+        ],
+        "answerIndex": 1
+      }
+    ],
+    "devops": [
+      {
+        "question": "CI/CD pipeline ning asosiy maqsadi nima?",
+        "options": [
+          "Server xarajatlarini kamaytirish",
+          "Deploy jarayonini avtomatlashtirish",
+          "Frontend dizaynini yaratish",
+          "Git commit tarixini saqlash"
+        ],
+        "answerIndex": 1
+      },
+      {
+        "question": "Docker containerlari nimaga asoslanadi?",
+        "options": [
+          "Virtual mashinalar",
+          "Fayl tizimi snapshotlari",
+          "Operatsion tizim virtualizatsiyasi",
+          "Javada yozilgan skriptlar"
+        ],
+        "answerIndex": 2
+      }
+    ]
+  }
+}
