@@ -3,6 +3,13 @@ import { mkdir, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { loadEnv } from './env.js';
+import {
+  buildQuestionMarkup,
+  createPdfBuffer,
+  createSession as storeCreateSession,
+  getSession as storeGetSession,
+  resetSession as storeResetSession,
+} from './bot-helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = resolve(__filename, '..');
@@ -34,6 +41,19 @@ if (categories.length === 0) {
 
 const sessions = new Map();
 let updateOffset = 0;
+
+function createUserSession(userId, categoryKey) {
+  const questions = questionsData.categories[categoryKey];
+  return storeCreateSession(sessions, userId, categoryKey, questions);
+}
+
+function getUserSession(userId) {
+  return storeGetSession(sessions, userId);
+}
+
+function resetUserSession(userId) {
+  storeResetSession(sessions, userId);
+}
 
 async function telegramRequest(method, payload, isJson = true) {
   const url = `${apiBase}/${method}`;
@@ -79,33 +99,6 @@ async function sendDocument(chatId, buffer, filename) {
   return telegramRequest('sendDocument', formData, false);
 }
 
-function createSession(userId, categoryKey) {
-  const questions = questionsData.categories[categoryKey];
-  sessions.set(userId, {
-    userId,
-    categoryKey,
-    currentIndex: 0,
-    questions,
-    answers: [],
-  });
-}
-
-function getSession(userId) {
-  return sessions.get(userId);
-}
-
-function resetSession(userId) {
-  sessions.delete(userId);
-}
-
-function buildQuestionMarkup(categoryKey, questionIndex, options) {
-  const inline_keyboard = options.map((option, idx) => [{
-    text: option,
-    callback_data: `answer|${categoryKey}|${questionIndex}|${idx}`,
-  }]);
-  return { inline_keyboard };
-}
-
 async function promptCategory(chatId) {
   const inline_keyboard = categories.map((key) => [{
     text: key,
@@ -128,52 +121,6 @@ async function sendQuestion(chatId, session) {
   const question = questions[currentIndex];
   const text = `<b>${categoryKey.toUpperCase()}</b> yo'nalishi\n\nSavol ${currentIndex + 1}: ${question.question}`;
   await sendMessage(chatId, text, buildQuestionMarkup(categoryKey, currentIndex, question.options));
-}
-
-function escapePdfText(text) {
-  return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-}
-
-function createPdfBuffer(lines) {
-  const streamLines = ['BT', '/F1 12 Tf', '14 TL', '72 770 Td'];
-  lines.forEach((line, index) => {
-    const escaped = escapePdfText(line);
-    if (index === 0) {
-      streamLines.push(`(${escaped}) Tj`);
-    } else {
-      streamLines.push('T*');
-      streamLines.push(`(${escaped}) Tj`);
-    }
-  });
-  streamLines.push('ET');
-  const streamContent = streamLines.join('\n');
-  const streamLength = Buffer.byteLength(streamContent, 'utf8');
-
-  let pdf = '%PDF-1.4\n';
-  const offsets = [0];
-
-  function appendObject(id, content) {
-    const currentOffset = Buffer.byteLength(pdf, 'utf8');
-    offsets[id] = currentOffset;
-    pdf += `${id} 0 obj\n${content}\nendobj\n`;
-  }
-
-  appendObject(1, '<< /Type /Catalog /Pages 2 0 R >>');
-  appendObject(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  appendObject(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>');
-  const contentObject = `<< /Length ${streamLength} >>\nstream\n${streamContent}\nendstream`;
-  appendObject(4, contentObject);
-  appendObject(5, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-
-  const xrefOffset = Buffer.byteLength(pdf, 'utf8');
-  pdf += `xref\n0 ${offsets.length}\n0000000000 65535 f \n`;
-  for (let i = 1; i < offsets.length; i += 1) {
-    const padded = offsets[i].toString().padStart(10, '0');
-    pdf += `${padded} 00000 n \n`;
-  }
-  pdf += `trailer << /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  return Buffer.from(pdf, 'utf8');
 }
 
 async function finalizeSession(chatId, session) {
@@ -206,7 +153,7 @@ async function finalizeSession(chatId, session) {
 
   await sendMessage(chatId, `🏁 Test yakunlandi!\nTo'g'ri javoblar: ${correct}/${total}`);
   await sendDocument(chatId, pdfBuffer, filename);
-  resetSession(session.userId);
+  resetUserSession(session.userId);
   await promptCategory(chatId);
 }
 
@@ -220,7 +167,7 @@ async function handleAnswer(callbackQuery) {
     return;
   }
 
-  const session = getSession(from.id);
+  const session = getUserSession(from.id);
   if (!session || session.categoryKey !== categoryKey) {
     await answerCallbackQuery(id);
     return;
@@ -273,8 +220,8 @@ async function handleCategory(callbackQuery) {
     return;
   }
 
-  createSession(from.id, categoryKey);
-  const session = getSession(from.id);
+  createUserSession(from.id, categoryKey);
+  const session = getUserSession(from.id);
   session.userId = from.id;
 
   await answerCallbackQuery(id);
@@ -297,7 +244,7 @@ async function handleMessage(message) {
     return;
   }
 
-  const session = getSession(message.from.id);
+  const session = getUserSession(message.from.id);
   if (session) {
     await sendMessage(chatId, 'Iltimos, variantni tugmalar orqali tanlang.');
   } else {
